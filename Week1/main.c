@@ -1,5 +1,46 @@
 #include<stdio.h>
 #include <string.h>
+
+typedef struct
+{
+    char word[20];
+    int count;
+    char line[100];
+}Data;
+
+typedef struct nodetype
+{
+    Data key;
+    struct nodetype *right,*left;
+}node;
+
+typedef struct nodetype *tree;
+void insertnode(tree *root,Data x)
+{
+    if((*root)==NULL)
+    {
+        *root=(node*)malloc(sizeof(node));
+        (*root)->key=x;
+        (*root)->right=NULL;
+        (*root)->left=NULL;
+    }
+    else if(strcmp(x.word,((*root)->key).word)>0) insertnode(&(*root)->right,x);
+    else if(strcmp(x.word,((*root)->key).word)<0) insertnode(&(*root)->left,x);
+    else{
+        ((*root)->key).count++;
+        if(strstr(((*root)->key).line,x.line)==NULL) strcat(((*root)->key).line,x.line);
+    }
+}
+
+tree search(tree root,char *x)
+{
+    if(root==NULL) return NULL;
+    else if(strcmp(x,(root->key).word)>0) search(root->right,x);
+    else if(strcmp(x,(root->key).word)<0) search(root->left,x);
+    else return root;
+}
+
+
 char * toLowercaseString(char *str){
     int len = strlen(str);
     char * strLowerCase = (char*) malloc(sizeof(char)* len);
@@ -13,7 +54,38 @@ char * toLowercaseString(char *str){
     }
     return strLowerCase;
 }
-
+char *ltrim(char *str, const char *seps){
+    size_t totrim;
+    if (seps == NULL) {
+        seps = "\t\n\v\f\r ";
+    }
+    totrim = strspn(str, seps);
+    if (totrim > 0) {
+        size_t len = strlen(str);
+        if (totrim == len) {
+            str[0] = '\0';
+        }
+        else {
+            memmove(str, str + totrim, len + 1 - totrim);
+        }
+    }
+    return str;
+}
+char *rtrim(char *str, const char *seps){
+    int i;
+    if (seps == NULL) {
+        seps = "\t\n\v\f\r ";
+    }
+    i = strlen(str) - 1;
+    while (i >= 0 && strchr(seps, str[i]) != NULL) {
+        str[i] = '\0';
+        i--;
+    }
+    return str;
+}
+char *trim(char *str){
+    return ltrim(rtrim(str, NULL), NULL);
+}
 int isEmpty(char *str){
     if (str[0]=='\n' ||str[0]=='\0' || str[0]=='\t')
         return 1;
@@ -29,6 +101,20 @@ int hasDigit(char *str){
     }
     return 0;
 }
+int isHasDot(char *str){
+    int len = strlen(str);
+    if (str[len -1]=='.')    {
+        return 1;
+    }
+    return 0;
+}
+char* removeDot(char *str){
+    int len = strlen(str);
+    if (isHasDot(str)){
+        str[len -1]='\0';
+    }
+    return str;
+}
 int isProperNoun(char *str){
     if (!isEmpty(str) && str[0]>= 'A' && str[0] <= 'Z'){
         return 1 ;
@@ -36,7 +122,7 @@ int isProperNoun(char *str){
     return 0;
 }
 int compareString(char* word1 ,char* word2){
-    return strcmp(toLowercaseString(word1),toLowercaseString(word2));
+    return strcmp(toLowercaseString(trim(word1)),toLowercaseString(trim(word2)));
 }
 int isStopWord(char** stopWordList,int stopListSize, char* word){
     for (int i=0;i< stopListSize; i++){
@@ -52,97 +138,53 @@ FILE * openFile(char *filename, char * type){
     }
     return fp;
 }
-void readFileText(char* filename,char** stopWordList,int stopListSize)
+void readFileText(char* filename,char** stopWordList,int stopListSize,tree *treeWord)
 {
     FILE *fp;
     fp = openFile(filename, "r");
     if (fp == NULL) return;
-    int c;
-    char *word = malloc(sizeof(char)*100);
-    int index = 0;
-    int lineNo =1;
     char *strLine = (char*) malloc(sizeof(char)*200);
     char *token = (char*) malloc(sizeof(char)*20);
-    const char divider[20] = "\n ,()-.\0";
+    const char divider[20] = " \n,()-";
     int lineNumer = 0;
+    int isStartSentence =0;
     while (fgets(strLine,199,fp)!= NULL){
         lineNumer++;
-        strLine[strlen(strLine)] = '\0';
-        token = strtok(strLine, divider);
+        token = strtok(trim(strLine), divider);
         while( token != NULL ) {
-            if (!isStopWord(stopWordList,stopListSize,token) && !isEmpty(token) && !hasDigit(token)){
-                printf( " %s\n", token );
-            }
+            
+                if (isStartSentence==0){
+                    if (isHasDot(token)){
+                        isStartSentence = 1;
+                    }
+                    token = removeDot(token);
+                }else{
+                    isStartSentence = 0;
+                    continue;
+                }
+                if (isStopWord(stopWordList,stopListSize,token)==0 && hasDigit(token) ==0 && isEmpty(token) ==0 && isProperNoun(token) ==0){
+                    
+                    tree data = search(treeWord,token);
+                    if (data !=NULL){
+                        sprintf((data->key).line,",%d ",lineNumer);
+                        (data->key).count = (data->key).count+1;
+                    }else{
+                        Data words ;
+                        strcpy(words.word, token);
+                        words.count = 1 ;
+                         sprintf(words.line,",%d ",lineNumer);
+                        insertnode(treeWord,words);
+                    }
+                }
+
             token = strtok(NULL, divider);
         }
-        
 
     }
     
-    // do{
-    // c = fgetc(fp);
-    //     if (c == '\n')
-    //     {
-    //         lineNo+=1;
-    //     }        
-
-    //     if (c == '.') {
-    //         while (!isupper(c)){
-    //             c = fgetc(fp);
-    //             if (c == '\n') lineNo+=1; //*
-    //             if (c == EOF) // eof thì kết thúc
-    //             {
-    //                 word[index] = '\0';                           
-    //                 // printf(" %s\n ", word); 
-    //                 break;
-    //             }
-    //         }
-    //             // fseek(fp, -1, SEEK_CUR);
-    //             word[index] = '\0';                           
-    //             //printf(" %s\n ", word);
-    //             word[0] = 0; //Reset word
-    //             index = 0;
-    //             c = tolower(c); // lấy chữ đầu tiên của từ viết hoa và để nó thành viết thường
-    //         }              
-      
-    //     if(c == ' ' || c == '\n' || c == '\0' || c == '\t' || c == ',' || c == '(' || c == ')' || c == ':' || c == ';' || c == '-' || c == '!' || c == '\'' || c == '`' || c == '\"') 
-    //     {   
-    //         if (isupper(c = fgetc(fp)))
-    //         {
-    //             while (c != ' ' )
-    //             {
-    //                 c = fgetc(fp);
-    //                 if(c == '\n') lineNo+=1;
-    //             }
-    //             fseek(fp, -1, SEEK_CUR);
-    //             word[index] = '\0';                           
-    //             //printf(" %s\n ", word);
-    //             // if (!check_stopw(stop_w,num_of_stop_w,word))
-    //             // {
-
-    //             // }
-                
-    //             word[0] = 0; //Reset word
-    //             index = 0;
-    //         }
-    //         else
-    //         {
-    //             fseek(fp, -1, SEEK_CUR);
-    //             word[index] = '\0';              
-    //             //printf(" %s\n ", word);
-    //             word[0] = 0; //Reset word
-    //             index = 0;
-    //         }         
-    //     } else 
-    //     {
-    //         word[index] = c;   
-    //         index++;
-    //     }    
-
-    // }while(c != EOF);
-
-    fclose(fp); // Closing the file
+    fclose(fp); 
 }
+
 char ** getListStopWorld(char *filename,int * numWord){
     char str[10];
     char** a = (char **)malloc(50 * sizeof(char *));
@@ -162,10 +204,21 @@ char ** getListStopWorld(char *filename,int * numWord){
     fclose(fp);
     return a;
 }
+void displayTree(tree root){
+    if (root!=NULL) {
+        displayTree(root->left);
+        printf("\n%-20s%-2i%s",(root->key).word,(root->key).count,(root->key).line);
+        displayTree(root->right);
+    }
+}
 void main (void ){
     char* stopWordFileName = "stopw.txt";
     char* textFileName = "vanban.txt";
     int* numStopWord = malloc(sizeof(int));
     char ** listStopWord = getListStopWorld(stopWordFileName,numStopWord);
-    readFileText(textFileName,listStopWord,*numStopWord);
+    tree treeWord = (tree) calloc(1,sizeof(node));
+    readFileText(textFileName,listStopWord,*numStopWord,&treeWord);
+    displayTree(treeWord);
+
+   
 }
