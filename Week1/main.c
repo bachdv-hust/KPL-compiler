@@ -138,7 +138,7 @@ FILE * openFile(char *filename, char * type){
     }
     return fp;
 }
-void insertDataString(char * token ){
+void insertDataString(char * token ,int lineNumer,tree *treeWord){
     tree data = search(treeWord,token);
         if (data !=NULL){
             sprintf((data->key).line,",%d ",lineNumer);
@@ -174,12 +174,12 @@ void readFileText(char* filename,char** stopWordList,int stopListSize,tree *tree
                 }else{
                     isStartSentence = 0;
                     if(isStopWord(stopWordList,stopListSize,token)==0 && hasDigit(token) ==0 && isEmpty(token) ==0){
-                        insertDataString(token);
+                        insertDataString(token,lineNumer,treeWord);
                     }
                     continue;
                 }
                 if (isStopWord(stopWordList,stopListSize,token)==0 && hasDigit(token) ==0 && isEmpty(token) ==0 && isProperNoun(token) ==0){
-                    insertDataString(token);
+                    insertDataString(token,lineNumer,treeWord);
                 }
 
             token = strtok(NULL, divider);
