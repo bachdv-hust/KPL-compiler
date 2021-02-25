@@ -138,6 +138,19 @@ FILE * openFile(char *filename, char * type){
     }
     return fp;
 }
+void insertDataString(char * token ){
+    tree data = search(treeWord,token);
+        if (data !=NULL){
+            sprintf((data->key).line,",%d ",lineNumer);
+            (data->key).count = (data->key).count+1;
+        }else{
+            Data words ;
+            strcpy(words.word, token);
+            words.count = 1 ;
+            sprintf(words.line,",%d ",lineNumer);
+            insertnode(treeWord,words);
+         }
+}
 void readFileText(char* filename,char** stopWordList,int stopListSize,tree *treeWord)
 {
     FILE *fp;
@@ -160,21 +173,13 @@ void readFileText(char* filename,char** stopWordList,int stopListSize,tree *tree
                     token = removeDot(token);
                 }else{
                     isStartSentence = 0;
+                    if(isStopWord(stopWordList,stopListSize,token)==0 && hasDigit(token) ==0 && isEmpty(token) ==0){
+                        insertDataString(token);
+                    }
                     continue;
                 }
                 if (isStopWord(stopWordList,stopListSize,token)==0 && hasDigit(token) ==0 && isEmpty(token) ==0 && isProperNoun(token) ==0){
-                    
-                    tree data = search(treeWord,token);
-                    if (data !=NULL){
-                        sprintf((data->key).line,",%d ",lineNumer);
-                        (data->key).count = (data->key).count+1;
-                    }else{
-                        Data words ;
-                        strcpy(words.word, token);
-                        words.count = 1 ;
-                         sprintf(words.line,",%d ",lineNumer);
-                        insertnode(treeWord,words);
-                    }
+                    insertDataString(token);
                 }
 
             token = strtok(NULL, divider);
