@@ -3,16 +3,16 @@
 
 typedef struct
 {
-    char word[20];
+    char *word;
     int count;
-    char line[100];
+    char *line;
 }Data;
 
-typedef struct nodetype
-{
+typedef struct nodetype{
     Data key;
     struct nodetype *right,*left;
 }node;
+
 
 typedef struct nodetype *tree;
 void insertnode(tree *root,Data x)
@@ -32,8 +32,7 @@ void insertnode(tree *root,Data x)
     }
 }
 
-tree search(tree root,char *x)
-{
+tree search(tree root,char *x){
     if(root==NULL) return NULL;
     else if(strcmp(x,(root->key).word)>0) search(root->right,x);
     else if(strcmp(x,(root->key).word)<0) search(root->left,x);
@@ -139,33 +138,39 @@ FILE * openFile(char *filename, char * type){
     return fp;
 }
 void insertDataString(char * token ,int lineNumer,tree *treeWord){
-    tree data = search(treeWord,token);
+    tree data = search(*treeWord,token);
         if (data !=NULL){
-            sprintf((data->key).line,",%d ",lineNumer);
+            char *str =(char*) malloc(sizeof(char)*20) ;
+            sprintf(str,",%d ",lineNumer);
+            strcat((data->key).line, str);
             (data->key).count = (data->key).count+1;
+            free(str);
         }else{
             Data words ;
+            words.word = (char*) malloc(sizeof(char)*50);
+            words.line = (char*) malloc(sizeof(char)*10000);
             strcpy(words.word, token);
             words.count = 1 ;
             sprintf(words.line,",%d ",lineNumer);
             insertnode(treeWord,words);
          }
 }
+
 void readFileText(char* filename,char** stopWordList,int stopListSize,tree *treeWord)
 {
     FILE *fp;
     fp = openFile(filename, "r");
     if (fp == NULL) return;
     char *strLine = (char*) malloc(sizeof(char)*200);
-    char *token = (char*) malloc(sizeof(char)*20);
-    const char divider[20] = " \n,()-";
+    char *token = (char*) malloc(sizeof(char)*50);
+    const char divider[50] = " \n,()-;'`;\"!?:*";
     int lineNumer = 0;
     int isStartSentence =0;
     while (fgets(strLine,199,fp)!= NULL){
+        
         lineNumer++;
         token = strtok(trim(strLine), divider);
         while( token != NULL ) {
-            
                 if (isStartSentence==0){
                     if (isHasDot(token)){
                         isStartSentence = 1;
@@ -183,15 +188,16 @@ void readFileText(char* filename,char** stopWordList,int stopListSize,tree *tree
                 }
 
             token = strtok(NULL, divider);
+            
         }
-
+       
     }
     
     fclose(fp); 
 }
 
 char ** getListStopWorld(char *filename,int * numWord){
-    char str[10];
+    char *str = (char*) malloc(sizeof(char)*49);
     char** a = (char **)malloc(50 * sizeof(char *));
     for (int i = 0; i < 50; i++){
         a[i] = (char *)malloc(50 * sizeof(char));
@@ -206,6 +212,7 @@ char ** getListStopWorld(char *filename,int * numWord){
         (i)++;
     }
     *numWord = i;
+    free(str);
     fclose(fp);
     return a;
 }
@@ -218,10 +225,10 @@ void displayTree(tree root){
 }
 void main (void ){
     char* stopWordFileName = "stopw.txt";
-    char* textFileName = "vanban.txt";
+    char* textFileName = "alice30.txt";
     int* numStopWord = malloc(sizeof(int));
     char ** listStopWord = getListStopWorld(stopWordFileName,numStopWord);
-    tree treeWord = (tree) calloc(1,sizeof(node));
+    tree treeWord=NULL ;
     readFileText(textFileName,listStopWord,*numStopWord,&treeWord);
     displayTree(treeWord);
 
